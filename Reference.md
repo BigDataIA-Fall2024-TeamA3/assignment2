@@ -1,3 +1,21 @@
+# Reference
+
+## Docker
+
+```
+docker run # (docker create + run)
+docker create # creates a new container
+docker start <container>
+docker stop / kill <container>
+docker container logs
+docker ls
+docker container exec
+docker container rm 
+docker restart
+docker rename
+
+```
+
 ### Building and running your application
 
 When you're ready, start your application by running:
@@ -20,3 +38,5 @@ docs for more detail on building and pushing.
 
 ### References
 * [Docker's Python guide](https://docs.docker.com/language/python/)
+
+
