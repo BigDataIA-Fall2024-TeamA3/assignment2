@@ -1,12 +1,18 @@
-FROM python:3.12
+# Base image
+FROM python:3.9-slim
 
-WORKDIR /workspace/practice/fastapi
+# Set the working directory
+WORKDIR /app
 
-RUN pip install fastapi uvicorn
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the FastAPI app code to the working directory
 COPY . .
+
+# Expose the port that Uvicorn will run on
 EXPOSE 8000
 
-# Run app.py when the container launches
-# CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
-CMD ["python", "app.py"]
+# Run the FastAPI app using Uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
