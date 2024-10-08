@@ -94,7 +94,7 @@ default_args = {
 
 # Define the DAG
 with DAG(
-    'huggingface_repo_to_s3_dag',
+    'Huggingface_Repo_to_AWS_S3',
     default_args=default_args,
     description='Clone a Hugging Face repository and upload the contents to S3',
     schedule_interval=None,
