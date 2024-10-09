@@ -1,10 +1,4 @@
 import streamlit as st
-<<<<<<< HEAD
-
-st.title("Home")
-st.write("Welcome to the Home page!")
-    
-=======
 import boto3
 import openai
 import PyPDF2
@@ -130,4 +124,3 @@ if st.session_state.get('dive_deep_mode', False):
                 st.error("Please enter a question.")
     else:
         st.error("No file selected. Please select a file.")
->>>>>>> c484a24 (start tracking all the above files)
