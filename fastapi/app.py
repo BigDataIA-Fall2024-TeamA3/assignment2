@@ -4,17 +4,12 @@ import os
 import boto3
 from pydantic import BaseModel
 import uvicorn
-
-
+import json
+from IPython import embed
 
 app = FastAPI()
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-   
-    
-app = FastAPI()
+print("FastAPI application starting...")
 
 session = boto3.Session(
     aws_access_key_id=os.getenv('AWS_ACCESS_KEY'),
@@ -36,6 +31,13 @@ class QuestionRequest(BaseModel):
     context: str
     model: str
 
+
+@app.get("/")
+def read_root():
+    print("FastAPI application starting...")
+
+    return {"Hello": "World"}
+
 @app.get("/list_json_files/")
 def list_json_files_in_s3(bucket_name: str, folder: str):
     json_files = []
@@ -49,7 +51,7 @@ def list_json_files_in_s3(bucket_name: str, folder: str):
 def load_extracted_text_from_json(json_file: str):
     json_obj = s3.get_object(Bucket=S3_BUCKET, Key=json_file)
     json_content = json_obj['Body'].read().decode('utf-8')
-    extracted_data = json.loads(json_content)
+    extracted_data = json.load(json_content)
     extracted_text = extracted_data.get('content', '')
     return extracted_text
 
@@ -77,6 +79,6 @@ def ask_openai_question(request: QuestionRequest):
     return response['choices'][0]['message']['content'].strip()
 
 
-if __name__ == "__main__":
-    uvicorn.run("app:app", host="0.0.0.0", port=8000)
+# if __name__ == "__main__":
+#     uvicorn.run("app:app", host="0.0.0.0", port=8000)
  
