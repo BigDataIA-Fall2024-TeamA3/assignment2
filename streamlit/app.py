@@ -32,12 +32,12 @@ def login_user(username, password):
     except ValueError:
         return {"error": "Invalid JSON response"}
 
-# Set page based on query params
-query_params = st.query_params
-page = query_params.get("page", ["login"])[0]  # Default to login page
+# Initialize session state
+if 'show_register' not in st.session_state:
+    st.session_state.show_register = False
 
 # Login Page
-if page == "login":
+if not st.session_state.show_register:
     st.title("Login")
     with st.form(key='login_form'):
         login_username = st.text_input("Username")
@@ -55,12 +55,13 @@ if page == "login":
             else:
                 st.error("Login failed. Please check your credentials.")
 
-
-    # Link to registration page
-    st.write("Don't have an account? [Register here](?page=register)")
+    # Display link to registration page
+    st.write("Don't have an account? Click here to register:")
+    if st.button("Register here"):
+        st.session_state.show_register = True
 
 # Registration Page
-elif page == "register":
+elif st.session_state.show_register:
     st.title("Register")
     with st.form(key='register_form'):
         username = st.text_input("Username")
@@ -71,6 +72,7 @@ elif page == "register":
             result = register_user(username, password)
             st.write(result)
 
-    # Link to login page
-    st.write("Already have an account? [Login here](?page=login)")
-
+    # Display link to login page
+    st.write("Already have an account? Click here to login:")
+    if st.button("Back to Login"):
+        st.session_state.show_register = False
