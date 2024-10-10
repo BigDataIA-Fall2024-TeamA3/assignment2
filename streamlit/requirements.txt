@@ -1,4 +1,5 @@
 streamlit==1.2.0
+numpy
 pandas==1.3.3
 python-dotenv
 protobuf==3.20.1
@@ -7,3 +8,4 @@ boto3
 PyPDF2
 openai==0.28.0
 altair==4.1.0
+requests==2.26.0

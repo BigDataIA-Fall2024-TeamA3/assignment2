@@ -6,6 +6,8 @@ import json
 from dotenv import load_dotenv
 import os
 import io
+import requests
+
 
 session = boto3.Session(
     aws_access_key_id=os.getenv('AWS_ACCESS_KEY'),
@@ -19,13 +21,29 @@ S3_FOLDER_PYPDF = os.getenv("S3_PATH_TGT_PYPDF")
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # Function to list JSON files from S3
+FASTAPI_URL = os.getenv("FASTAPI_URL")
+
 def list_json_files_in_s3(bucket_name, folder):
-    json_files = []
-    response = s3.list_objects_v2(Bucket=bucket_name, Prefix=folder)
-    for obj in response.get('Contents', []):
-        if obj['Key'].endswith('.json') or obj['Key'].endswith('.txt'):
-            json_files.append(obj['Key'])
-    return json_files
+    response = requests.get(f"{FASTAPI_URL}/list_json_files/", params={"bucket_name": bucket_name, "folder": folder})
+    return response.json()
+
+@st.cache(show_spinner=False)
+def load_extracted_text_from_json(json_file):
+    response = requests.get(f"{FASTAPI_URL}/load_extracted_text/", params={"json_file": json_file})
+    return response.json()
+
+# Function to summarize text using OpenAI
+@st.cache(show_spinner=False)
+def summarize_text(text, model):
+    response = requests.post(f"{FASTAPI_URL}/summarize_text/", json={"text": text, "model": model})
+    return response.json()
+
+
+# Function to ask OpenAI questions
+def ask_openai_question(question, context, model):
+    response = requests.post(f"{FASTAPI_URL}/ask_question/", json={"question": question, "context": context, "model": model})
+    return response.json()
+
 
 # Function to load extracted text from a JSON file in S3
 @st.cache(show_spinner=False)
@@ -36,29 +54,6 @@ def load_extracted_text_from_json(json_file):
     extracted_text = extracted_data.get('content', '')
     return extracted_text
 
-# Function to summarize text using OpenAI
-@st.cache(show_spinner=False)
-def summarize_text(text, model):
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "Summarize the following text."},
-            {"role": "user", "content": text}
-        ]
-    )
-    return response['choices'][0]['message']['content'].strip()
-
-# Function to ask OpenAI questions
-def ask_openai_question(question, context, model):
-    response = openai.ChatCompletion.create(
-        model= model,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"{context}\n\nQuestion: {question}\nAnswer:"}
-        ],
-        max_tokens=1500
-    )
-    return response['choices'][0]['message']['content'].strip()
 
 st.title("PDF Reader and Parser")
 
