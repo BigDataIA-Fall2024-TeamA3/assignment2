@@ -1,18 +1,18 @@
-# Base image
-FROM python:3.9-slim
+# Use a slim Python image as a base
+FROM python:3.12
 
-# Set the working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy requirements and install dependencies
+# Copy the requirements file to the working directory
 COPY requirements.txt .
+
+# Install the Python dependencies from the requirements file
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the Streamlit app and .env from the parent directory
+# Copy the rest of the application code into the working directory
 COPY . .
 
-# Install python-dotenv to manage .env loading
-RUN pip install python-dotenv
+# Command to run the Streamlit application
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 
-# Run the Streamlit app
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.enableCORS=false"]
