@@ -22,6 +22,8 @@ S3_FOLDER = os.getenv("S3_PATH_TGT")
 S3_FOLDER_PYPDF = os.getenv("S3_PATH_TGT_PYPDF")
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+print("S3 connected: Session starting...")
+
 class SummarizeRequest(BaseModel):
     text: str
     model: str
@@ -33,13 +35,13 @@ class QuestionRequest(BaseModel):
 
 
 @app.get("/")
-def read_root():
+async def read_root():
     print("FastAPI application starting...")
 
     return {"Hello": "World"}
 
 @app.get("/list_json_files/")
-def list_json_files_in_s3(bucket_name: str, folder: str):
+async def list_json_files_in_s3(bucket_name: str, folder: str):
     json_files = []
     response = s3.list_objects_v2(Bucket=bucket_name, Prefix=folder)
     for obj in response.get('Contents', []):
@@ -48,15 +50,15 @@ def list_json_files_in_s3(bucket_name: str, folder: str):
     return json_files
 
 @app.get("/load_extracted_text/")
-def load_extracted_text_from_json(json_file: str):
+async def load_extracted_text_from_json(json_file: str):
     json_obj = s3.get_object(Bucket=S3_BUCKET, Key=json_file)
     json_content = json_obj['Body'].read().decode('utf-8')
     extracted_data = json.load(json_content)
     extracted_text = extracted_data.get('content', '')
     return extracted_text
 
-@app.post("/summarize_text/")
-def summarize_text(request: SummarizeRequest):
+@app.post("/summarize-text/")
+async def summarize_text(request: SummarizeRequest):
     response = openai.ChatCompletion.create(
         model=request.model,
         messages=[
@@ -66,8 +68,8 @@ def summarize_text(request: SummarizeRequest):
     )
     return response['choices'][0]['message']['content'].strip()
 
-@app.post("/ask_question/")
-def ask_openai_question(request: QuestionRequest):
+@app.post("/ask-question/")
+async def ask_openai_question(request: QuestionRequest):
     response = openai.ChatCompletion.create(
         model=request.model,
         messages=[
@@ -98,6 +100,6 @@ async def ask_openai(question_request: QuestionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# if __name__ == "__main__":
-#     uvicorn.run("app:app", host="0.0.0.0", port=8000)
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=8000)
  
