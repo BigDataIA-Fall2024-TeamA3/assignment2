@@ -1,4 +1,3 @@
-# Can you write tests for the FastAPI application?
 import pytest
 from fastapi.testclient import TestClient
 from app import app
@@ -20,17 +19,12 @@ def test_list_json_files():
     test_bucket = S3_BUCKET
     test_folder = S3_FOLDER
     response = client.get(f"/list_json_files/?bucket_name={test_bucket}&folder={test_folder}")
-    print(response.json())
+    print(response)
     assert response.status_code == 200
     # Add more assertions based on the expected response
 
 # def test_load_extracted_text():
 #     response = client.get("/load_extracted_text/?json_file=test_file.json")
-#     assert response.status_code == 200
-#     # Add more assertions based on the expected response
-
-# def test_summarize_text():
-#     response = client.post("/summarize-text/", json={"text": "your text", "model": "gpt-3.5-turbo"})
 #     assert response.status_code == 200
 #     # Add more assertions based on the expected response
 

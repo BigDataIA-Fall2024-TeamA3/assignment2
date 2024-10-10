@@ -50,6 +50,7 @@ async def list_json_files_in_s3(bucket_name: str, folder: str):
     for obj in response.get('Contents', []):
         if obj['Key'].endswith('.json') or obj['Key'].endswith('.txt'):
             json_files.append(obj['Key'])
+    print(json_files)
     return json_files
 
 @app.get("/load_extracted_text/")
@@ -59,17 +60,6 @@ async def load_extracted_text_from_json(json_file: str):
     extracted_data = json.load(json_content)
     extracted_text = extracted_data.get('content', '')
     return extracted_text
-
-@app.post("/summarize-text/")
-async def summarize_text(request: SummarizeRequest):
-    response = openai.chat.completions.create(
-        model=request.model,
-        messages=[
-            {"role": "system", "content": "Summarize the following text."},
-            {"role": "user", "content": request.text}
-        ]
-    )
-    return response['choices'][0]['message']['content'].strip()
 
 @app.post("/ask-question/")
 async def ask_openai_question(request: QuestionRequest):
