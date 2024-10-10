@@ -3,11 +3,9 @@ import boto3
 import openai
 import PyPDF2
 import json
-from dotenv import load_dotenv
 import os
 import io
 import requests
-
 
 session = boto3.Session(
     aws_access_key_id=os.getenv('AWS_ACCESS_KEY'),

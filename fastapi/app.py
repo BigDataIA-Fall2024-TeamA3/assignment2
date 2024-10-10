@@ -7,6 +7,9 @@ import uvicorn
 import json
 from IPython import embed
 
+from dotenv import load_dotenv
+
+load_dotenv()
 app = FastAPI()
 
 print("FastAPI application starting...")
@@ -59,7 +62,7 @@ async def load_extracted_text_from_json(json_file: str):
 
 @app.post("/summarize-text/")
 async def summarize_text(request: SummarizeRequest):
-    response = openai.ChatCompletion.create(
+    response = openai.chat.completions.create(
         model=request.model,
         messages=[
             {"role": "system", "content": "Summarize the following text."},
@@ -70,15 +73,20 @@ async def summarize_text(request: SummarizeRequest):
 
 @app.post("/ask-question/")
 async def ask_openai_question(request: QuestionRequest):
-    response = openai.ChatCompletion.create(
-        model=request.model,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"{request.context}\n\nQuestion: {request.question}\nAnswer:"}
-        ],
-        max_tokens=1500
-    )
-    return response['choices'][0]['message']['content'].strip()
+    try:
+        response = openai.chat.completions.create(
+            model=request.model,
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": f"{request.context}\n\nQuestion: {request.question}\nAnswer:"}
+            ],
+            max_tokens=1500
+        )
+        return response['choices'][0]['message']['content'].strip()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 # POST endpoint to ask a question

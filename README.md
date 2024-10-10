@@ -24,6 +24,8 @@ docker ps
 
 ```
 docker rm fastapi-container
+docker build -t fastapi-app .
+docker ps
 docker run -d --name fastapi-container -p 8000:8000 fastapi-app
 curl -X GET "http://localhost:8000/"
 ```
