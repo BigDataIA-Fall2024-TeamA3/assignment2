@@ -10,8 +10,9 @@ import pathlib
 from datetime import timedelta
 import shutil
 import logging
+from boto3.s3.transfer import TransferConfig
 
-
+# Load environment variables
 env_path = pathlib.Path("/opt/airflow/.env")
 load_dotenv(dotenv_path=env_path)
 
@@ -30,12 +31,12 @@ session = boto3.Session(
 s3 = session.client('s3')
 
 
-import subprocess
 
-def clone_huggingface_repo(repo_url, local_dir, **kwargs):
+
+def clone_huggingface_repo(repo_url, local_dir='/home/airflow/tmp/gaia/', **kwargs):
     logging.info(f"Starting to clone the repository {repo_url} into {local_dir}")
-    
-    # Check if local_dir exists
+
+    # Ensure the local directory exists and is accessible by Airflow
     if os.path.exists(local_dir):
         try:
             shutil.rmtree(local_dir)
@@ -44,21 +45,15 @@ def clone_huggingface_repo(repo_url, local_dir, **kwargs):
             raise RuntimeError(f"Failed to delete directory {local_dir}: {e}")
 
     # Create the directory if it doesn't exist
-    if not os.path.exists(local_dir):
-        os.makedirs(local_dir)
-        logging.info(f"Created directory: {local_dir}")
+    os.makedirs(local_dir, exist_ok=True)
+    logging.info(f"Created directory: {local_dir}")
 
-    # Clone the Hugging Face repository using subprocess
+    # Clone the Hugging Face repository
     try:
         result = subprocess.run(
-            ["git", "clone", repo_url, local_dir],
+            ["git", "clone", "--depth=1", repo_url, local_dir],
             check=True,
-            text=True,
-            env={
-                **os.environ,
-                "GIT_ASKPASS": "echo",
-                "GIT_TERMINAL_PROMPT": "0"
-            }
+            text=True
         )
         logging.info(f"Cloned repository {repo_url} into {local_dir}")
     except subprocess.CalledProcessError as e:
@@ -66,24 +61,34 @@ def clone_huggingface_repo(repo_url, local_dir, **kwargs):
 
     return local_dir
 
-
-
-# Upload the contents of the folder to S3
-def upload_folder_to_s3(local_dir, s3_bucket, s3_folder, **kwargs):
-    logging.info(f"Uploading files from {local_dir} to s3://{s3_bucket}/{s3_folder}")
+# Function to upload a file to S3 (binary mode)
+def upload_file_to_s3(file_path, bucket_name, object_name):
+    logging.info(f"Uploading {file_path} to s3://{bucket_name}/{object_name}...")
     
-    for root, dirs, files in os.walk(local_dir):
-        for file in files:
-            local_file_path = os.path.join(root, file)
-            s3_key = os.path.join(s3_folder, os.path.relpath(local_file_path, local_dir))
-            
-            try:
-                s3.upload_file(local_file_path, s3_bucket, s3_key)
-                logging.info(f"Uploaded {local_file_path} to s3://{s3_bucket}/{s3_key}")
-            except Exception as e:
-                logging.error(f"Failed to upload {local_file_path} to s3://{s3_bucket}/{s3_key}: {e}")
-                raise e
+    try:
+        # Open the file in binary mode and upload it
+        with open(file_path, "rb") as file_data:
+            s3.upload_fileobj(file_data, bucket_name, object_name)
+        logging.info(f"Successfully uploaded {file_path} to s3://{bucket_name}/{object_name}")
+    except Exception as e:
+        logging.error(f"Failed to upload {file_path} to s3://{bucket_name}/{object_name}: {e}")
+        raise e
 
+# Upload all files in the cloned repository to S3
+def upload_repo_to_s3(local_repo_path, bucket_name, s3_folder):
+    logging.info(f"Uploading repository from {local_repo_path} to S3 bucket {bucket_name}")
+    
+    for root, dirs, files in os.walk(local_repo_path):
+        for file in files:
+            file_path = os.path.join(root, file)
+            # Generate the relative path for the object in S3
+            relative_path = os.path.relpath(file_path, local_repo_path)
+            s3_object_name = os.path.join(s3_folder, relative_path)
+
+            # Upload the file using the correct binary mode
+            upload_file_to_s3(file_path, bucket_name, s3_object_name)
+
+    logging.info(f"Finished uploading repository from {local_repo_path} to S3 bucket {bucket_name}")
 
 # Default arguments for the DAG
 default_args = {
@@ -115,10 +120,10 @@ with DAG(
     # Task 2: Upload the folder contents to S3
     upload_folder_task = PythonOperator(
         task_id='upload_folder_to_s3',
-        python_callable=upload_folder_to_s3,
+        python_callable=upload_repo_to_s3,
         op_kwargs={
-            'local_dir': LOCAL_REPO_DIR,
-            's3_bucket': S3_BUCKET,
+            'local_repo_path': LOCAL_REPO_DIR,
+            'bucket_name': S3_BUCKET,
             's3_folder': S3_FOLDER
         }
     )

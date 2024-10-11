@@ -1,28 +1,25 @@
 import streamlit as st
-<<<<<<< HEAD
-
-st.title("Home")
-st.write("Welcome to the Home page!")
-    
-=======
 import boto3
-import openai
-import PyPDF2
+import requests
 import json
 from dotenv import load_dotenv
 import os
 import io
 
+# Load environment variables
+load_dotenv()
+
+# AWS S3 setup
 session = boto3.Session(
     aws_access_key_id=os.getenv('AWS_ACCESS_KEY'),
     aws_secret_access_key=os.getenv('AWS_SECRET_KEY'),
     region_name='us-east-2'
 )
 s3 = session.client('s3')
-S3_BUCKET = os.getenv("S3_BUCKET") 
+S3_BUCKET = os.getenv("S3_BUCKET")
 S3_FOLDER = os.getenv("S3_PATH_TGT")
-S3_FOLDER_PYPDF = os.getenv("S3_PATH_TGT_PYPDF") 
-openai.api_key = os.getenv('OPENAI_API_KEY')
+S3_FOLDER_PYPDF = os.getenv("S3_PATH_TGT_PYPDF")
+FASTAPI_URL = os.getenv("FASTAPI_URL")
 
 # Function to list JSON files from S3
 def list_json_files_in_s3(bucket_name, folder):
@@ -42,34 +39,35 @@ def load_extracted_text_from_json(json_file):
     extracted_text = extracted_data.get('content', '')
     return extracted_text
 
-# Function to summarize text using OpenAI
-@st.cache(show_spinner=False)
+# Function to summarize text using FastAPI
 def summarize_text(text, model):
-    response = openai.ChatCompletion.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": "Summarize the following text."},
-            {"role": "user", "content": text}
-        ]
-    )
-    return response['choices'][0]['message']['content'].strip()
+    return ask_openai_question_fastapi("Summarize the text", text, model)
 
-# Function to ask OpenAI questions
-def ask_openai_question(question, context, model):
-    response = openai.ChatCompletion.create(
-        model= model,
-        messages=[
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": f"{context}\n\nQuestion: {question}\nAnswer:"}
-        ],
-        max_tokens=1500
-    )
-    return response['choices'][0]['message']['content'].strip()
+# Function to interact with FastAPI for asking OpenAI questions
+def ask_openai_question_fastapi(question, context, model):
+    url = FASTAPI_URL
+    headers = {"Content-Type": "application/json"}
+    
+    data = {
+        "question": question,
+        "context": context,
+        "model": model
+    }
+    
+    try:
+        response = requests.post(url, json=data, headers=headers)
+        if response.status_code == 200:
+            return response.json().get('answer', 'No answer provided.')
+        else:
+            st.error(f"Error: {response.status_code} - {response.text}")
+    except Exception as e:
+        st.error(f"Failed to connect to FastAPI: {str(e)}")
 
+# Main page layout
 st.title("PDF Reader and Parser")
 
 doc_intelligence = st.selectbox("Choose a Document Intelligent Tool", ["Select a tool", "Azure AI Document Intelligence", "PyPDF2"])
-ai_model = st.selectbox("Choose an AI model", ["Select a model", "gpt-3.5-turbo", "gpt-4o"])
+ai_model = st.selectbox("Choose an AI model", ["Select a model", "gpt-3.5-turbo", "gpt-4"])
 
 if doc_intelligence != "Select a tool" and ai_model != "Select a model":
     st.write(f"Selected tool: {doc_intelligence} \n Selected AI Model: {ai_model}")
@@ -120,7 +118,7 @@ if st.session_state.get('dive_deep_mode', False):
 
         if st.button("Ask OpenAI"):
             if user_question:
-                answer = ask_openai_question(user_question, st.session_state.context, st.session_state.ai_model)
+                answer = ask_openai_question_fastapi(user_question, st.session_state.context, st.session_state.ai_model)
                 
                 st.session_state.chat_history.append((user_question, answer))
                 
@@ -130,4 +128,3 @@ if st.session_state.get('dive_deep_mode', False):
                 st.error("Please enter a question.")
     else:
         st.error("No file selected. Please select a file.")
->>>>>>> c484a24 (start tracking all the above files)
