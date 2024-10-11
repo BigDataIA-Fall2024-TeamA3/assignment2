@@ -10,9 +10,16 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 app = FastAPI()
 
+
 class QuestionRequest(BaseModel):
     question: str
     context: str = ""
+
+
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
 
 # POST endpoint to ask a question
 @app.post("/ask-openai/")
