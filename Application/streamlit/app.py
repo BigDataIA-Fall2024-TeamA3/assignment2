@@ -116,6 +116,7 @@ def access_protected_endpoint(token):
 def logout():
     if 'token' in st.session_state:
         del st.session_state['token']
+    st.session_state.page = "login"
     st.experimental_rerun()
 
 # Initialize session state
