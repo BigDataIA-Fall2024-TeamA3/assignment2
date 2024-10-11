@@ -2,12 +2,20 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from models import get_user_by_username  # This replaces the User model import
+import os
+from fastapi import HTTPException
+from dotenv import load_dotenv
 
+load_dotenv()
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Secret key and algorithm for JWT
-SECRET_KEY = "your-secret-key"  # Make sure this is a strong key in production
+SECRET_KEY = os.getenv("SECRET_KEY")  # Use 'SECRET_KEY' consistently
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY not found in environment variables")
+SECRET_KEY = SECRET_KEY.encode('utf-8')  # Convert to bytes if necessary
+ # This should print the key
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

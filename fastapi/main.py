@@ -15,7 +15,9 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
-
+@app.get("/")
+def app_root():
+    return {"HEllo":"World"}
 # Register a new user
 @app.post("/register")
 def register(user_data: UserCreate):
@@ -34,7 +36,7 @@ def register(user_data: UserCreate):
     
     # Insert new user into the database
     cursor.execute(
-        "INSERT INTO users (username, hashed_password) VALUES (?, ?)",
+        "INSERT INTO ai.user_tbl (username, user_password) VALUES (?, ?)",
         user_data.username, hashed_password
     )
     conn.commit()

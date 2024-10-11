@@ -1,24 +1,32 @@
+version: '3'
 services:
   fastapi:
-    build:
-      context: ./fastapi
-      dockerfile: Dockerfile
+    build: ./fastapi
     ports:
       - "8000:8000"
+    depends_on:
+      - mysql
     env_file:
       - .env
-    volumes:
-      - ./fastapi:/app  # Mount local fastapi directory to /app inside the container
 
   streamlit:
-    build:
-      context: ./streamlit
-      dockerfile: Dockerfile
+    build: ./streamlit
     ports:
       - "8501:8501"
-    env_file:
-      - .env
     depends_on:
-      - fastapi
+      - mysql
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_root_password}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    ports:
+       - "3307:3306" 
     volumes:
-      - ./streamlit:/app  # Mount local streamlit directory to /app inside the container
+      - db_data:/var/lib/mysql
+
+volumes:
+  db_data:
