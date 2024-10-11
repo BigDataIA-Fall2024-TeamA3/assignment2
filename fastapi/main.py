@@ -3,8 +3,11 @@ from auth import create_access_token, authenticate_user, get_password_hash,get_c
 from database import get_db_connection
 from pydantic import BaseModel
 import pyodbc
+import openai
+from dotenv import load_dotenv
+import os
 from fastapi.security import OAuth2PasswordBearer
-
+openai.api_key = os.getenv("OPENAI_API_KEY")
 app = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 # Pydantic models for request bodies
@@ -15,6 +18,11 @@ class UserCreate(BaseModel):
 class UserLogin(BaseModel):
     username: str
     password: str
+    
+class QuestionRequest(BaseModel):
+    question: str
+    context: str = ""
+    
 @app.get("/")
 def app_root():
     return {"status":"running"}
@@ -64,7 +72,22 @@ def login(form_data: UserLogin):
     # Create JWT token
     access_token = create_access_token(data={"sub": user_record[0]})
     return {"access_token": access_token, "token_type": "bearer"}
+@app.post("/ask-openai/")
+async def ask_openai(question_request: QuestionRequest,current_user: dict = Depends(get_current_user)):
+    try:
+ 
+        response = openai.Completion.create(
+            engine="text-davinci-003",
+            prompt=f"{question_request.context}\n\nQuestion: {question_request.question}\nAnswer:",
+            max_tokens=150
+        )
+        
+        answer = response.choices[0].text.strip()
+        
+        return {"question": question_request.question, "answer": answer}
 
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/protected-endpoint")
 def protected(token: str = Depends(oauth2_scheme)):
