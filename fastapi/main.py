@@ -17,7 +17,7 @@ class UserLogin(BaseModel):
     password: str
 @app.get("/")
 def app_root():
-    return {"HEllo":"World"}
+    return {"status":"running"}
 # Register a new user
 @app.post("/register")
 def register(user_data: UserCreate):
@@ -70,4 +70,6 @@ def login(form_data: UserLogin):
 def protected(token: str = Depends(oauth2_scheme)):
     user = get_current_user(token)  # Implement this function to decode JWT and fetch user info
     return {"message": f"Hello, {user['username']}. You are authenticated!"}
+
+
 
