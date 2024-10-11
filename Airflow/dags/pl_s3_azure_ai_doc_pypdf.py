@@ -44,7 +44,7 @@ session = boto3.Session(
 s3 = session.client('s3')
 
 def extract_text_from_pdf_pypdf(pdf_file, bucket_name, s3_folder):
-    
+    print(f"Pypdf {pdf_file}")
     # Download the PDF file from S3
     pdf_obj = s3.get_object(Bucket=bucket_name, Key=pdf_file)
     pdf_content = pdf_obj['Body'].read()
@@ -105,18 +105,34 @@ def upload_json_to_s3(json_output, pdf_file, bucket_name, s3_folder):
         ContentType='application/json'
     )
 
-# Processing the PDF to extract content and upload to S3
 def process_pdf_with_azure(pdf_file, bucket_name):
+    print(f"Processing {pdf_file} with Azure Document Intelligence")
 
+    # Step 1: Download the PDF from S3 and get its content
     pdf_obj = s3.get_object(Bucket=bucket_name, Key=pdf_file)
     pdf_content = pdf_obj['Body'].read()
 
-    poller = client.begin_analyze_document("prebuilt-document", document=pdf_content)
-    result = poller.result()
+    # Step 2: Check the size of the PDF file
+    max_allowed_size = 4 * 1024 * 1024  # Adjust based on Azure model limit (e.g., 4 MB)
 
-    json_output = convert_analyze_result_content_to_json(result)
+    if len(pdf_content) > max_allowed_size:
+        print(f"Skipping {pdf_file}: File size exceeds the {max_allowed_size / (1024 * 1024)} MB limit")
+        return  # Skip the file and do not process it
 
-    upload_json_to_s3(json_output, pdf_file, bucket_name, S3_FOLDER_TGT)
+    try:
+        # Step 3: Process the PDF with Azure Document Intelligence if it's within the size limit
+        poller = client.begin_analyze_document("prebuilt-document", document=pdf_content)
+        result = poller.result()
+
+        # Convert the result to a JSON serializable format
+        json_output = convert_analyze_result_content_to_json(result)
+
+        # Step 4: Upload the JSON result to S3
+        upload_json_to_s3(json_output, pdf_file, bucket_name, S3_FOLDER_TGT)
+
+        print(f"Successfully processed {pdf_file}")
+    except Exception as e:
+        print(f"Error processing {pdf_file}: {str(e)}")
 
 # Define the DAG
 default_args = {
@@ -126,7 +142,7 @@ default_args = {
 }
 
 with DAG(
-    'PDFs_Text_Extractor_Pipeline',
+    'process_pdfs_with_azure',
     default_args=default_args,
     description='Process PDFs from S3 with Azure AI Document Intelligence and store JSON output',
     schedule_interval=None,
