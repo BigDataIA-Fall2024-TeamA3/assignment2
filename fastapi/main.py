@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
-from auth import create_access_token, authenticate_user, get_password_hash
+from auth import create_access_token, authenticate_user, get_password_hash,get_current_user
 from database import get_db_connection
 from pydantic import BaseModel
 import pyodbc
